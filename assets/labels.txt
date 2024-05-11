@@ -1,0 +1,6 @@
+0 ncd
+1 cocci
+2 salmo
+3 healthy
+4 human
+5 ranobjects
