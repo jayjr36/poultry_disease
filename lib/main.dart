@@ -1,208 +1,281 @@
-// ignore_for_file: unnecessary_null_comparison
-
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
-import 'package:image_picker/image_picker.dart' as picker;
+import 'package:flutter_tflite/flutter_tflite.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'dart:developer' as devtools;
+
+import 'package:poultry_disease/login_screen.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-const String ssd = "SSD MobileNet";
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: TfliteHome(),
+    return MaterialApp(
+      title: 'Poultry Disease Detection',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: LoginScreen(),
     );
   }
 }
 
-class TfliteHome extends StatefulWidget {
-  const TfliteHome({super.key});
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
 
   @override
-  TfliteHomeState createState() => TfliteHomeState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class TfliteHomeState extends State<TfliteHome> {
- // final ImagePicker picker = ImagePicker();
-  File? _image;
+class _MyHomePageState extends State<MyHomePage> {
+  File? filePath;
+  String label = '';
+  double confidence = 0.0;
 
-   double _imageHeight = 0.0;
-  bool _busy = false;
+  Future<void> _tfLteInit() async {
+    String? res = await Tflite.loadModel(
+        model: "assets/model.tflite",
+        labels: "assets/labels.txt",
+        numThreads: 1, // defaults to 1
+        isAsset:
+            true, // defaults to true, set to false to load resources outside assets
+        useGpuDelegate:
+            false // defaults to false, set to true to use GPU delegate
+        );
+  }
 
-   List _recognitions = [];
+  pickImageGallery() async {
+    final ImagePicker picker = ImagePicker();
+// Pick an image.
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image == null) return;
+
+    var imageMap = File(image.path);
+
+    setState(() {
+      filePath = imageMap;
+    });
+
+    var recognitions = await Tflite.runModelOnImage(
+        path: image.path, // required
+        imageMean: 0.0, // defaults to 117.0
+        imageStd: 255.0, // defaults to 1.0
+        numResults: 2, // defaults to 5
+        threshold: 0.2, // defaults to 0.1
+        asynch: true // defaults to true
+        );
+
+    if (recognitions == null) {
+      devtools.log("recognitions is Null");
+      return;
+    }
+    devtools.log(recognitions.toString());
+    setState(() {
+      confidence = (recognitions[0]['confidence'] * 100);
+      label = recognitions[0]['label'].toString();
+    });
+  }
+
+  pickImageCamera() async {
+    final ImagePicker picker = ImagePicker();
+// Pick an image.
+    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+
+    if (image == null) return;
+
+    var imageMap = File(image.path);
+
+    setState(() {
+      filePath = imageMap;
+    });
+
+    var recognitions = await Tflite.runModelOnImage(
+        path: image.path, // required
+        imageMean: 0.0, // defaults to 117.0
+        imageStd: 255.0, // defaults to 1.0
+        numResults: 2, // defaults to 5
+        threshold: 0.2, // defaults to 0.1
+        asynch: true // defaults to true
+        );
+
+    if (recognitions == null) {
+      devtools.log("recognitions is Null");
+      return;
+    }
+    devtools.log(recognitions.toString());
+    setState(() {
+      confidence = (recognitions[0]['confidence'] * 100);
+      label = recognitions[0]['label'].toString();
+    });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    Tflite.close();
+  }
 
   @override
   void initState() {
+    // TODO: implement initState
     super.initState();
-    _busy = true;
-
-    loadModel().then((val) {
-      setState(() {
-        _busy = false;
-      });
-    });
-  }
-
-  loadModel() async {
-  try {
-    var interpreter = await Interpreter.fromAsset('assets/model.tflite');
-    interpreter.allocateTensors();
-    print("Model loaded successfully");
-  } catch (e) {
-    print("Failed to load the model: $e");
-  }
-}
-
-
-selectFromImagePicker() async {
-  picker.XFile? xImage = await picker.ImagePicker().pickImage(source: picker.ImageSource.gallery);
-  if (xImage == null) return;
-  File image = File(xImage.path); // Convert XFile to File
-  setState(() {
-    _busy = true;
-  });
-  predictImage(image);
-}
-
-  captureFromCamera() async {
-    var image = await picker.ImagePicker().pickImage(source: picker.ImageSource.camera);
-    if (image == null) return;
-    setState(() {
-      _busy = true;
-    });
-    predictImage(image as File);
-  }
-
-
-predictImage(File image) async {
-  Uint8List bytes = await image.readAsBytes(); // Read image file as bytes
-  await ssdMobileNet(bytes);
-
-  var imageHeight = 0.0;
-  FileImage(image)
-    .resolve(const ImageConfiguration())
-    .addListener((ImageStreamListener((ImageInfo info, bool _) {
-      setState(() {
-        imageHeight = info.image.height.toDouble();
-      });
-    })));
-
-  setState(() {
-    _image = image;
-    _imageHeight = imageHeight; // Assign imageHeight to _imageHeight
-    _busy = false;
-  });
-}
-
-ssdMobileNet(Uint8List image) async {
-  try {
-    var interpreter = await Interpreter.fromAsset('assets/model.tflite');
-    var inputShape = interpreter.getInputTensor(0).shape;
-    var outputShape = interpreter.getOutputTensor(0).shape;
-
-    var input = image.buffer.asUint8List();
-
-    interpreter.run(input, outputShape);
-
-    var output = interpreter.getOutputTensors();
-    // Process the output tensor as needed
-    
-    interpreter.close();
-  } catch (e) {
-    print("Error running inference: $e");
-  }
-}
-
-
-  List<Widget> renderBoxes(Size screen) {
-    double factorX = screen.width;
-    double factorY = _imageHeight / _imageHeight * screen.width;
-
-    Color blue = Colors.red;
-
-    return _recognitions.map((re) {
-      return Positioned(
-        left: re["rect"]["x"] * factorX,
-        top: re["rect"]["y"] * factorY,
-        width: re["rect"]["w"] * factorX,
-        height: re["rect"]["h"] * factorY,
-        child: ((re["confidenceInClass"] > 0.50))
-            ? Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: blue,
-                    width: 3,
-                  ),
-                ),
-                child: Text(
-                  "${re["detectedClass"]} ${(re["confidenceInClass"] * 100).toStringAsFixed(0)}%",
-                  style: TextStyle(
-                    background: Paint()..color = blue,
-                    color: Colors.white,
-                    fontSize: 15,
-                  ),
-                ),
-              )
-            : Container(),
-      );
-    }).toList();
+    _tfLteInit();
   }
 
   @override
   Widget build(BuildContext context) {
-    Size size = MediaQuery.of(context).size;
-
-    List<Widget> stackChildren = [];
-
-    stackChildren.add(Positioned(
-      top: 0.0,
-      left: 0.0,
-      width: size.width,
-      child: _image == null ? const Text("No Image Selected") : Image.file(_image!),
-    ));
-
-    stackChildren.addAll(renderBoxes(size));
-
-    if (_busy) {
-      stackChildren.add(const Center(
-        child: CircularProgressIndicator(),
-      ));
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Object Detection"),
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.teal,
+        title: const Text("Poultry Diseaase Detection", 
+        style: TextStyle(color: Colors.white),),
       ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          FloatingActionButton(
-            backgroundColor: Colors.red,
-            tooltip: "Capture Image from Camera",
-            onPressed: captureFromCamera,
-            child: const Icon(Icons.camera),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            children: [
+              const SizedBox(
+                height: 12,
+              ),
+              Card(
+                color: Colors.teal,
+                elevation: 20,
+                clipBehavior: Clip.hardEdge,
+                child: SizedBox(
+                  width: 300,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        const SizedBox(
+                          height: 18,
+                        ),
+                        Container(
+                          height: 280,
+                          width: 280,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            image: const DecorationImage(
+                              image: AssetImage('assets/upload.jpg'),
+                            ),
+                          ),
+                          child: filePath == null
+                              ? const Text('')
+                              : Image.file(
+                                  filePath!,
+                                  fit: BoxFit.fill,
+                                ),
+                        ),
+                        const SizedBox(
+                          height: 12,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            children: [
+                              Text(
+                                label,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 12,
+                              ),
+                              Text(
+                                "The Accuracy is ${confidence.toStringAsFixed(0)}%",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 12,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 8,
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  pickImageCamera();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    foregroundColor: Colors.black),
+                child: const Text(
+                  "Take a Photo",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(
+                height: 8,
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  pickImageGallery();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    foregroundColor: Colors.black),
+                child: const Text(
+                  "Pick from gallery",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(
+                height: 8,
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  //pickImageGallery();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    foregroundColor: Colors.black),
+                child: const Text(
+                  "Video Stream",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          FloatingActionButton(
-            backgroundColor: Colors.red,
-            tooltip: "Pick Image from Gallery",
-            onPressed: selectFromImagePicker,
-            child: const Icon(Icons.image),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: stackChildren,
+        ),
       ),
     );
   }
