@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:poultry_disease/dbcontroller.dart';
 import 'package:poultry_disease/main.dart';
 import 'package:poultry_disease/registration_screen.dart';
+import 'package:camera/camera.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+final CameraDescription camera;
+  const LoginScreen({super.key, required this.camera});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController usernameController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
 
-  LoginScreen({super.key});
+  final TextEditingController passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +75,7 @@ class LoginScreen extends StatelessWidget {
                     User? user = await dbHelper.getUser(username);
             
                     if (user != null && user.password == password) {
-                     Navigator.push(context, MaterialPageRoute(builder: ((context) => const MyHomePage())));
+                     Navigator.push(context, MaterialPageRoute(builder: ((context) => MyHomePage(camera: widget.camera,))));
                     } else {
                       showDialog(
                         context: context,

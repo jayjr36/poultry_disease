@@ -3,17 +3,23 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:image_picker/image_picker.dart';
-
+import 'package:camera/camera.dart';
+import 'package:poultry_disease/camerastream.dart';
 import 'dart:developer' as devtools;
 
 import 'package:poultry_disease/login_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  final firstCamera = cameras.first;
+
+  runApp(MyApp(camera: firstCamera));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final CameraDescription camera;
+  const MyApp({super.key, required this.camera});
 
   // This widget is the root of your application.
   @override
@@ -24,13 +30,14 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: LoginScreen(),
+      home: LoginScreen(camera: camera),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+  final CameraDescription camera;
+  const MyHomePage({super.key, required this.camera});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -45,12 +52,9 @@ class _MyHomePageState extends State<MyHomePage> {
     String? res = await Tflite.loadModel(
         model: "assets/model.tflite",
         labels: "assets/labels.txt",
-        numThreads: 1, // defaults to 1
-        isAsset:
-            true, // defaults to true, set to false to load resources outside assets
-        useGpuDelegate:
-            false // defaults to false, set to true to use GPU delegate
-        );
+        numThreads: 1,
+        isAsset: true,
+        useGpuDelegate: false);
   }
 
   pickImageGallery() async {
@@ -138,8 +142,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.teal,
-        title: const Text("Poultry Diseaase Detection", 
-        style: TextStyle(color: Colors.white),),
+        title: const Text(
+          "Poultry Diseaase Detection",
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -221,7 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   pickImageCamera();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                    backgroundColor: Colors.teal,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 30, vertical: 10),
                     shape: RoundedRectangleBorder(
@@ -241,7 +247,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   pickImageGallery();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                    backgroundColor: Colors.teal,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 30, vertical: 10),
                     shape: RoundedRectangleBorder(
@@ -258,10 +264,14 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  //pickImageGallery();
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: ((context) =>
+                              CameraView(camera: widget.camera))));
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
+                    backgroundColor: Colors.teal,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 30, vertical: 10),
                     shape: RoundedRectangleBorder(

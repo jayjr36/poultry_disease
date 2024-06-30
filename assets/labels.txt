@@ -1,6 +1,6 @@
-0 newcastle disease
-1 coccidiosis
-2 salmonella
-3 healthy
-4 human
-5 random objects
+newcastle disease
+coccidiosis
+salmonella
+healthy
+undefined image 
+undefined image
