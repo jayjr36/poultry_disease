@@ -3,58 +3,6 @@ import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:camera/camera.dart';
 import 'dart:developer' as devtools;
 
-// Future<void> main() async {
-//   WidgetsFlutterBinding.ensureInitialized();
-//   final cameras = await availableCameras();
-//   final firstCamera = cameras.first;
-
-//   runApp(MyApp(camera: firstCamera));
-// }
-
-// class MyApp extends StatelessWidget {
-//   final CameraDescription camera;
-//   const MyApp({super.key, required this.camera});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'Poultry Disease Detection',
-//       theme: ThemeData(
-//         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-//         useMaterial3: true,
-//       ),
-//       home: HomePage(camera: camera),
-//     );
-//   }
-// }
-
-// class HomePage extends StatelessWidget {
-//   final CameraDescription camera;
-//   const HomePage({super.key, required this.camera});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Home'),
-//       ),
-//       body: Center(
-//         child: ElevatedButton(
-//           onPressed: () {
-//             Navigator.push(
-//               context,
-//               MaterialPageRoute(
-//                 builder: (context) => CameraView(camera: camera),
-//               ),
-//             );
-//           },
-//           child: const Text('Proceed to Detection'),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 class CameraView extends StatefulWidget {
   final CameraDescription camera;
   const CameraView({super.key, required this.camera});
@@ -81,7 +29,7 @@ class _CameraViewState extends State<CameraView> {
     super.initState();
     _controller = CameraController(
       widget.camera,
-      ResolutionPreset.medium,
+      ResolutionPreset.max,
     );
     _initializeControllerFuture = _controller.initialize();
     _tfLteInit();
@@ -98,7 +46,7 @@ class _CameraViewState extends State<CameraView> {
         bytesList: img.planes.map((plane) => plane.bytes).toList(),
         imageHeight: img.height,
         imageWidth: img.width,
-        imageMean: 0.0,
+        imageMean: 127.5,
         imageStd: 255.0,
         rotation: 90,
         numResults: 2,
