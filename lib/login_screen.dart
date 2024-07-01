@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:poultry_disease/dbcontroller.dart';
 import 'package:poultry_disease/main.dart';
 import 'package:poultry_disease/registration_screen.dart';
@@ -23,18 +24,21 @@ class _LoginScreenState extends State<LoginScreen> {
     double w = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: const Text(
-          'POULTRY DISEASE DETECTION',
-          style: TextStyle(fontWeight: FontWeight.bold,
-          color: Colors.white, 
-          fontSize: 20),
+        backgroundColor: Colors.teal.shade400,
+        title: const Center(
+          child: Text(
+            textAlign: TextAlign.center,
+            'POULTRY DISEASE DETECTION',
+            style: TextStyle(fontWeight: FontWeight.bold,
+            color: Colors.white, 
+            fontSize: 18),
+          ),
         ),
       ),
       body: SingleChildScrollView(
         child: Container(  
-          color: Colors.teal,
-          padding: EdgeInsets.symmetric(horizontal: w*0.15, vertical: h*0.2),
+          color: Colors.teal.shade800,
+          padding: EdgeInsets.symmetric(horizontal: w*0.15, vertical: h*0.25),
           child: Container(
             padding: const EdgeInsets.all(20),
            decoration: BoxDecoration( 
@@ -54,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: usernameController,
                   decoration: const InputDecoration(
-                    labelText: 'Username',
+                    labelText: 'Email',
                   ),
                 ),
                 const SizedBox(height: 20.0),
@@ -82,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         builder: (BuildContext context) {
                           return AlertDialog(
                             title: const Text('Error'),
-                            content: const Text('Invalid username or password.'),
+                            content: const Text('Invalid email or password.'),
                             actions: <Widget>[
                               TextButton(
                                 onPressed: () {
@@ -96,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade800
                   , padding: EdgeInsets.symmetric(horizontal: w*0.2, vertical: h*0.005)),
                   child: const Text('Login', style: TextStyle(color: Colors.white),),
                 ),

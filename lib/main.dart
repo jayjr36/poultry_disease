@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import 'package:poultry_disease/camerastream.dart';
 import 'dart:developer' as devtools;
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:vibration/vibration.dart';
 
 import 'package:poultry_disease/login_screen.dart';
 
@@ -88,6 +90,9 @@ class _MyHomePageState extends State<MyHomePage> {
       confidence = (recognitions[0]['confidence'] * 100);
       label = recognitions[0]['label'].toString();
     });
+    
+    String message = 'Recognition: $label with confidence: ${confidence.toStringAsFixed(0)}%';
+    await showToastAndVibrate(message);
   }
 
   pickImageCamera() async {
@@ -121,6 +126,10 @@ class _MyHomePageState extends State<MyHomePage> {
       confidence = (recognitions[0]['confidence'] * 100);
       label = recognitions[0]['label'].toString();
     });
+
+    String message = 'Recognition: $label with confidence: ${confidence.toStringAsFixed(0)}%';
+    await showToastAndVibrate(message);
+
   }
 
   @override
@@ -144,7 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Colors.teal,
         title: const Text(
           "Poultry Diseaase Detection",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: 18),
         ),
       ),
       body: SingleChildScrollView(
@@ -288,5 +297,21 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+
+  Future<void> showToastAndVibrate(String message) async {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,     
+      timeInSecForIosWeb: 2,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(duration: 500);
+    }
   }
 }

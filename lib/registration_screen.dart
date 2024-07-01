@@ -15,15 +15,15 @@ class RegistrationScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.teal,
         title: const Text('POULTRY DISEASE DETECTION', 
-        style: TextStyle(color: Colors.white),),
+        style: TextStyle(color: Colors.white, fontSize: 18),),
       ),
       body: SingleChildScrollView(
         child: Container(
           height: h,
            padding: EdgeInsets.symmetric(
             horizontal: w*0.15, 
-            vertical: h*0.25),
-          decoration: const BoxDecoration(color: Colors.teal),
+            vertical: h*0.3),
+          decoration: BoxDecoration(color: Colors.teal.shade800),
           child: Container(
               padding: const EdgeInsets.all(20),
            decoration: BoxDecoration( 
@@ -38,7 +38,7 @@ class RegistrationScreen extends StatelessWidget {
                 TextField(
                   controller: usernameController,
                   decoration: const InputDecoration(
-                    labelText: 'Username',
+                    labelText: 'Email',
                   ),
                 ),
                 const SizedBox(height: 20.0),
@@ -83,7 +83,7 @@ class RegistrationScreen extends StatelessWidget {
                         builder: (BuildContext context) {
                           return AlertDialog(
                             title: const Text('Error'),
-                            content: const Text('Please enter both username and password.'),
+                            content: const Text('Please enter both email and password.'),
                             actions: <Widget>[
                               TextButton(
                                 onPressed: () {
@@ -97,7 +97,7 @@ class RegistrationScreen extends StatelessWidget {
                       );
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade800),
                   child: const Text('Register', style: TextStyle(color: Colors.white),),
                 ),
               ],

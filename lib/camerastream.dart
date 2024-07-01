@@ -3,6 +3,9 @@ import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:camera/camera.dart';
 import 'dart:developer' as devtools;
 
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:vibration/vibration.dart';
+
 class CameraView extends StatefulWidget {
   final CameraDescription camera;
   const CameraView({super.key, required this.camera});
@@ -50,7 +53,7 @@ class _CameraViewState extends State<CameraView> {
         imageStd: 255.0,
         rotation: 90,
         numResults: 2,
-        threshold: 0.2,
+        threshold: 0.4,
         asynch: true,
       );
 
@@ -63,10 +66,29 @@ class _CameraViewState extends State<CameraView> {
         confidence = (recognitions[0]['confidence'] * 100);
         label = recognitions[0]['label'].toString();
       });
+      
+    // String message = 'Recognition: $label with confidence: ${confidence.toStringAsFixed(0)}%';
+    // await showToastAndVibrate(message);
     } catch (e) {
       devtools.log("Error running model on frame: $e");
     }
   }
+
+  //  Future<void> showToastAndVibrate(String message) async {
+  //   Fluttertoast.showToast(
+  //     msg: message,
+  //     toastLength: Toast.LENGTH_LONG,
+  //     gravity: ToastGravity.BOTTOM,     
+  //     timeInSecForIosWeb: 2,
+  //     backgroundColor: Colors.black,
+  //     textColor: Colors.white,
+  //     fontSize: 16.0,
+  //   );
+
+  //   if (await Vibration.hasVibrator() ?? false) {
+  //     Vibration.vibrate(duration: 500);
+  //   }
+  // }
 
   @override
   void dispose() {
@@ -78,8 +100,12 @@ class _CameraViewState extends State<CameraView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Poultry Disease Detection'),
+     appBar: AppBar(
+        backgroundColor: Colors.teal,
+        title: const Text(
+          "Poultry Diseaase Detection",
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
       ),
       body: FutureBuilder<void>(
         future: _initializeControllerFuture,
