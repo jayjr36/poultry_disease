@@ -1,12 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:poultry_disease/dbcontroller.dart';
+import 'package:camera/camera.dart';
 import 'package:poultry_disease/main.dart';
 import 'package:poultry_disease/registration_screen.dart';
-import 'package:camera/camera.dart';
 
 class LoginScreen extends StatefulWidget {
-final CameraDescription camera;
+  final CameraDescription camera;
   const LoginScreen({super.key, required this.camera});
 
   @override
@@ -14,9 +13,10 @@ final CameraDescription camera;
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController usernameController = TextEditingController();
-
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -29,23 +29,25 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Text(
             textAlign: TextAlign.center,
             'POULTRY DISEASE DETECTION',
-            style: TextStyle(fontWeight: FontWeight.bold,
-            color: Colors.white, 
-            fontSize: 18),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontSize: 18,
+            ),
           ),
         ),
       ),
       body: SingleChildScrollView(
-        child: Container(  
+        child: Container(
           color: Colors.teal.shade800,
-          padding: EdgeInsets.symmetric(horizontal: w*0.15, vertical: h*0.25),
+          padding: EdgeInsets.symmetric(horizontal: w * 0.15, vertical: h * 0.25),
           child: Container(
             padding: const EdgeInsets.all(20),
-           decoration: BoxDecoration( 
-            color: Colors.white,
-            border: Border.all(color: Colors.black, width: 2),
-            borderRadius: const BorderRadius.all(Radius.circular(25)),
-           ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.black, width: 2),
+              borderRadius: const BorderRadius.all(Radius.circular(25)),
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -56,10 +58,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 TextField(
-                  controller: usernameController,
+                  controller: emailController,
                   decoration: const InputDecoration(
                     labelText: 'Email',
                   ),
+                  keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 20.0),
                 TextField(
@@ -72,21 +75,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20.0),
                 ElevatedButton(
                   onPressed: () async {
-                    String username = usernameController.text;
-                    String password = passwordController.text;
-            
-                    DatabaseHelper dbHelper = DatabaseHelper();
-                    User? user = await dbHelper.getUser(username);
-            
-                    if (user != null && user.password == password) {
-                     Navigator.push(context, MaterialPageRoute(builder: ((context) => MyHomePage(camera: widget.camera,))));
-                    } else {
+                    String email = emailController.text.trim();
+                    String password = passwordController.text.trim();
+
+                    try {
+                      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+                        email: email,
+                        password: password,
+                      );
+
+                      if (userCredential.user != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MyHomePage(camera: widget.camera)),
+                        );
+                      }
+                    } on FirebaseAuthException catch (e) {
+                      String errorMessage = 'An error occurred. Please try again.';
+
+                      if (e.code == 'user-not-found') {
+                        errorMessage = 'No user found for that email.';
+                      } else if (e.code == 'wrong-password') {
+                        errorMessage = 'Wrong password provided for that user.';
+                      }
+
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
                             title: const Text('Error'),
-                            content: const Text('Invalid email or password.'),
+                            content: Text(errorMessage),
                             actions: <Widget>[
                               TextButton(
                                 onPressed: () {
@@ -100,17 +118,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade800
-                  , padding: EdgeInsets.symmetric(horizontal: w*0.2, vertical: h*0.005)),
-                  child: const Text('Login', style: TextStyle(color: Colors.white),),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal.shade800,
+                    padding: EdgeInsets.symmetric(horizontal: w * 0.2, vertical: h * 0.005),
+                  ),
+                  child: const Text('Login', style: TextStyle(color: Colors.white)),
                 ),
                 const SizedBox(height: 10.0),
                 TextButton(
                   onPressed: () {
-                    Navigator.push(context,MaterialPageRoute(builder: (context)=>RegistrationScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => RegistrationScreen()),
+                    );
                   },
-                  
-                  child: const Text('Don\'t have an account?', style: TextStyle(color: Colors.green),),
+                  child: const Text(
+                    'Don\'t have an account?',
+                    style: TextStyle(color: Colors.green),
+                  ),
                 ),
               ],
             ),

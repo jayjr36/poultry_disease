@@ -7,12 +7,25 @@ import 'package:camera/camera.dart';
 import 'package:poultry_disease/camerastream.dart';
 import 'dart:developer' as devtools;
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:poultry_disease/diseases.dart';
+import 'package:poultry_disease/registration_screen.dart';
+import 'package:poultry_disease/users.dart';
 import 'package:vibration/vibration.dart';
-
+import 'package:firebase_core/firebase_core.dart';
 import 'package:poultry_disease/login_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyCkJEYMkVaemP2jTeAambDVr0bq2f8zKnc", 
+      appId: "1:601097694658:android:7a7e5eaf71c9e1a53ffa5b", 
+      messagingSenderId: "601097694658", 
+      projectId: "hostelchat-1"
+      ));
   final cameras = await availableCameras();
   final firstCamera = cameras.first;
 
@@ -23,7 +36,6 @@ class MyApp extends StatelessWidget {
   final CameraDescription camera;
   const MyApp({super.key, required this.camera});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -74,8 +86,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     var recognitions = await Tflite.runModelOnImage(
         path: image.path, // required
-        imageMean: 0.0, // defaults to 117.0
-        imageStd: 255.0, // defaults to 1.0
+        imageMean: 127.5, // defaults to 117.0
+        imageStd: 127.5, // defaults to 1.0
         numResults: 2, // defaults to 5
         threshold: 0.2, // defaults to 0.1
         asynch: true // defaults to true
@@ -90,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
       confidence = (recognitions[0]['confidence'] * 100);
       label = recognitions[0]['label'].toString();
     });
-    
+     await saveHighestConfidenceDetection(label, confidence);
     String message = 'Recognition: $label with confidence: ${confidence.toStringAsFixed(0)}%';
     await showToastAndVibrate(message);
   }
@@ -149,6 +161,60 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.teal,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Poultry Disease Detection',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('Users'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const UserListScreen()), 
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.medical_services),
+              title: const Text('Diseases'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DiseaseListPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.medical_services),
+              title: const Text('Logout'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) =>  RegistrationScreen()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
         backgroundColor: Colors.teal,
         title: const Text(
@@ -312,6 +378,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (await Vibration.hasVibrator() ?? false) {
       Vibration.vibrate(duration: 500);
+    }
+  }
+    Future<void> saveHighestConfidenceDetection(String detectedLabel, double detectedConfidence) async {
+    try {
+      await FirebaseFirestore.instance.collection('disease_detections').add({
+        'disease': detectedLabel,
+        'confidence': detectedConfidence,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('Detection saved to Firebase: $detectedLabel with confidence: $detectedConfidence');
+    } catch (e) {
+      debugPrint('Error saving detection: $e');
     }
   }
 }

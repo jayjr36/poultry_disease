@@ -1,10 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:camera/camera.dart';
 import 'dart:developer' as devtools;
 
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:vibration/vibration.dart';
 
 class CameraView extends StatefulWidget {
   final CameraDescription camera;
@@ -19,6 +18,7 @@ class _CameraViewState extends State<CameraView> {
   late Future<void> _initializeControllerFuture;
   String label = '';
   double confidence = 0.0;
+  final double threshold = 0.9;
 
   Future<void> _tfLteInit() async {
     await Tflite.loadModel(
@@ -50,7 +50,7 @@ class _CameraViewState extends State<CameraView> {
         imageHeight: img.height,
         imageWidth: img.width,
         imageMean: 127.5,
-        imageStd: 255.0,
+        imageStd: 127.5,
         rotation: 90,
         numResults: 2,
         threshold: 0.4,
@@ -61,34 +61,45 @@ class _CameraViewState extends State<CameraView> {
         devtools.log("No recognitions");
         return;
       }
-      devtools.log("Recognitions: $recognitions");
-      setState(() {
-        confidence = (recognitions[0]['confidence'] * 100);
-        label = recognitions[0]['label'].toString();
-      });
-      
-    // String message = 'Recognition: $label with confidence: ${confidence.toStringAsFixed(0)}%';
-    // await showToastAndVibrate(message);
+      if (recognitions[0]['confidence'] > 0.7) {
+        devtools.log("Recognitions: $recognitions");
+        setState(() {
+          confidence = (recognitions[0]['confidence'] * 100);
+          label = recognitions[0]['label'].toString();
+        });
+      }
+
+      double highestConfidence = 0.0;
+      String detectedLabel = '';
+
+      for (var recognition in recognitions) {
+        double conf = recognition['confidence'];
+        if (conf > highestConfidence) {
+          highestConfidence = conf;
+          detectedLabel = recognition['label'].toString();
+        }
+      }
+
+      if (highestConfidence > threshold) {
+        setState(() {
+          confidence = (highestConfidence * 100);
+          label = detectedLabel;
+        });
+
+        // Save to Firebase Firestore
+        await FirebaseFirestore.instance.collection('diseases').add({
+          'label': detectedLabel,
+          'confidence': highestConfidence,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        devtools.log(
+            "Saved to Firestore: $detectedLabel with confidence: ${highestConfidence.toStringAsFixed(0)}%");
+      }
     } catch (e) {
       devtools.log("Error running model on frame: $e");
     }
   }
-
-  //  Future<void> showToastAndVibrate(String message) async {
-  //   Fluttertoast.showToast(
-  //     msg: message,
-  //     toastLength: Toast.LENGTH_LONG,
-  //     gravity: ToastGravity.BOTTOM,     
-  //     timeInSecForIosWeb: 2,
-  //     backgroundColor: Colors.black,
-  //     textColor: Colors.white,
-  //     fontSize: 16.0,
-  //   );
-
-  //   if (await Vibration.hasVibrator() ?? false) {
-  //     Vibration.vibrate(duration: 500);
-  //   }
-  // }
 
   @override
   void dispose() {
@@ -100,7 +111,7 @@ class _CameraViewState extends State<CameraView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     appBar: AppBar(
+      appBar: AppBar(
         backgroundColor: Colors.teal,
         title: const Text(
           "Poultry Diseaase Detection",
